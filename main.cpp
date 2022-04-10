@@ -159,7 +159,7 @@ double CountingExpression(std::string example, var* variable, int count) {
                 operations = AddToStack(operations, '(');
             }
             else if (predop == '^'){
-                // here will be written the processing of variables
+                // here will be written the processing of variables//
             }
         }
         else {
