@@ -46,6 +46,8 @@ double StringToNumber(std::string stroka) {
 }
 
 int TypeOfExpression(std::string current) {
+    if (current.empty())
+        return NONE;
     bool flag = true;
     for (auto i: current) {
         if (!('0' <= i && i <= '9' || i == '.')) {
@@ -137,10 +139,13 @@ double CountingExpression(std::string example, var* variable, int count) {
     numbers = CreateStack();
     std::string current;
     char predop;
-    for (char symb: example) {
+    for (int i = 0; i < example.size(); i++) {
+        char symb = example[i];
         if (symb == ' ' || symb == '\t' || symb == '\n') {
             continue;
         }
+//        PrintStack(numbers);
+//        PrintStackChar(operations);
         if (symb == '+' || symb == '-' || symb == '*' || symb == '/' || symb == '^' || symb == ')') {
             predop = symb;
             int result = TypeOfExpression(current);
@@ -155,11 +160,44 @@ double CountingExpression(std::string example, var* variable, int count) {
             current = "";
         }
         else if (symb == '(') {
-            if (current.empty() && predop != '^') {
-                operations = AddToStack(operations, '(');
+            i++;
+            symb = example[i];
+            std::string new_expr;
+            int count_open = 1, count_closed = 1;
+            while (symb != ')' || count_open != count_closed) {
+                new_expr += symb;
+                if (symb == '(')
+                    count_open++;
+                else if (symb == ')')
+                    count_closed++;
+                i++;
+                symb = example[i];
             }
-            else if (predop == '^'){
-                // here will be written the processing of variables//
+            double res = CountingExpression(new_expr, variable, count);
+            if (current.empty()) {
+                numbers = AddToStack(numbers, res);
+            }
+            else {
+               if (current == "ln")
+                   numbers = AddToStack(numbers, log(res));
+               else if (current == "sqrt")
+                   numbers = AddToStack(numbers, pow(res, 0.5));
+               else if (current == "cos")
+                   numbers = AddToStack(numbers, cos(res));
+               else if (current == "sin")
+                   numbers = AddToStack(numbers, sin(res));
+               else if (current == "exp")
+                   numbers = AddToStack(numbers, exp(res));
+               //complex
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+                current = "";
             }
         }
         else {
@@ -175,6 +213,7 @@ double CountingExpression(std::string example, var* variable, int count) {
             numbers = AddToStack(numbers, VariableValue(variable, current, count));
         }
     }
+    std::string a;
     ReloadStack(operations, numbers);
     while (operations->size != 0) {
         double a = DeleteFromStack(numbers), b = DeleteFromStack(numbers);
