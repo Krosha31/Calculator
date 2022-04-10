@@ -6,7 +6,7 @@
 struct var {
     std::string name;
     int len;
-    int value;
+    double value;
 };
 
 
@@ -46,6 +46,8 @@ double StringToNumber(std::string stroka) {
 }
 
 int TypeOfExpression(std::string current) {
+    if (current.empty())
+        return NONE;
     bool flag = true;
     for (auto i: current) {
         if (!('0' <= i && i <= '9' || i == '.')) {
@@ -137,10 +139,13 @@ double CountingExpression(std::string example, var* variable, int count) {
     numbers = CreateStack();
     std::string current;
     char predop;
-    for (char symb: example) {
+    for (int i = 0; i < example.size(); i++) {
+        char symb = example[i];
         if (symb == ' ' || symb == '\t' || symb == '\n') {
             continue;
         }
+//        PrintStack(numbers);
+//        PrintStackChar(operations);
         if (symb == '+' || symb == '-' || symb == '*' || symb == '/' || symb == '^' || symb == ')') {
             predop = symb;
             int result = TypeOfExpression(current);
@@ -155,11 +160,44 @@ double CountingExpression(std::string example, var* variable, int count) {
             current = "";
         }
         else if (symb == '(') {
-            if (current.empty() && predop != '^') {
-                operations = AddToStack(operations, '(');
+            i++;
+            symb = example[i];
+            std::string new_expr;
+            int count_open = 1, count_closed = 1;
+            while (symb != ')' || count_open != count_closed) {
+                new_expr += symb;
+                if (symb == '(')
+                    count_open++;
+                else if (symb == ')')
+                    count_closed++;
+                i++;
+                symb = example[i];
             }
-            else if (predop == '^'){
-                // here will be written the processing of variables
+            double res = CountingExpression(new_expr, variable, count);
+            if (current.empty()) {
+                numbers = AddToStack(numbers, res);
+            }
+            else {
+               if (current == "ln")
+                   numbers = AddToStack(numbers, log(res));
+               else if (current == "sqrt")
+                   numbers = AddToStack(numbers, pow(res, 0.5));
+               else if (current == "cos")
+                   numbers = AddToStack(numbers, cos(res));
+               else if (current == "sin")
+                   numbers = AddToStack(numbers, sin(res));
+               else if (current == "exp")
+                   numbers = AddToStack(numbers, exp(res));
+               //complex
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+//               else if (current == "ln")
+//                   numbers = AddToStack(numbers, cos(res));
+                current = "";
             }
         }
         else {
@@ -175,6 +213,7 @@ double CountingExpression(std::string example, var* variable, int count) {
             numbers = AddToStack(numbers, VariableValue(variable, current, count));
         }
     }
+    std::string a;
     ReloadStack(operations, numbers);
     while (operations->size != 0) {
         double a = DeleteFromStack(numbers), b = DeleteFromStack(numbers);
@@ -189,62 +228,24 @@ double CountingExpression(std::string example, var* variable, int count) {
 }
 
 
-void ReadingVariables(var* variables, int count) {
-    auto* exprs = new std::string[count];
-    for (int i = 0; i < count; i++) {
-        std::getline(std::cin, exprs[i]);
-    }
-    for (int i = count - 1; i > 0; i--) {
-        std::string name;
-        int j = 0;
-        while (exprs[i][j] != '=') {
-            name += exprs[i][j];
-        }
-        int k = 0;
-        std::string send;
-
-        // check later
-
-        for (auto symb: exprs[i]) {
-            k++;
-            if (k > j) {
-                send += symb;
-            }
-        }
-        if (name[j - 1] == ' ') {
-            name.pop_back();
-            j--;
-        }
-
-        int result = CountingExpression(send, variables, count);
-        variables[i] = {name, j, result};
-    }
-}
-
-bool InVariables(var* variables, std::string name) {
+bool InVariables(std::string* names, std::string name) {
     int i = 0;
-    while (!variables[i].name.empty()) {
-        if (name == variables[i].name)
+    while (!names[i].empty()) {
+        if (name == names[i])
             return true;
         i++;
     }
     return false;
 }
 
-
-void Parsing() {
-    char symb = '1';
-    std::string expr;
+std::string* FindingVariables(std::string expr, int* count_of_variables) {
     std::string current;
-    var* variables = new var[1000];
-    int count_of_variables = 0;
-    while (symb != '\n') {
-        symb = getchar();
-        expr += symb;
+    std::string* names = new std::string[1000];
+    for (auto symb: expr) {
         if (symb == '\n' || symb == ' ' || symb == '\t' || symb == '(' || symb == ')' || symb == '*' || symb == '+' || symb == '-' ||
-        symb == '/' || symb == '^') {
-            if (!current.empty() && TypeOfExpression(current) == VARIABLE && !InVariables(variables, current)) {
-                variables[count_of_variables++].name = current;
+            symb == '/' || symb == '^' || symb == '=') {
+            if (!current.empty() && TypeOfExpression(current) == VARIABLE && !InVariables(names, current)) {
+                names[(*count_of_variables)++] = current;
             }
             current = "";
         }
@@ -252,10 +253,90 @@ void Parsing() {
             current += symb;
         }
     }
+    if (!current.empty() && TypeOfExpression(current) == VARIABLE && !InVariables(names, current)) {
+        names[(*count_of_variables)++] = current;
+    }
+    return names;
+}
+
+
+var* ReadingVariables(std::string* names, int &count) {
+    auto* exprs = new std::string[1000];
+    var* variables = new var[1000];
+    int k = 0;
+    while (k < count) {
+        std::getline(std::cin, exprs[k]);
+        int new_count = 0;
+        std::string* new_names;
+        new_names = FindingVariables(exprs[k], &new_count);
+        for (int t = 0; t < new_count; t++) {
+            if (!InVariables(names, new_names[t])) {
+                names[count++] = new_names[t];
+            }
+        }
+        delete[] new_names;
+        k++;
+    }
+    for (int i = count - 1; i >= 0; i--) {
+        std::string name;
+        int j = 0;
+        while (exprs[i][j] != '=') {
+            name += exprs[i][j];
+            j++;
+        }
+        int temp = j - 1;
+        while (name[temp] == ' ' || name[temp] == '\t') {
+            name.pop_back();
+            temp--;
+        }
+        int s = 0;
+        std::string send;
+
+        // check later
+        while (exprs[i][j] == ' ' || exprs[i][j] == '\t') {
+            j++;
+        }
+        for (auto symb: exprs[i]) {
+            if (s > j) {
+                send += symb;
+            }
+            s++;
+        }
+        double result = CountingExpression(send, variables, count);
+        variables[i] = {name, j, result};
+    }
+    delete[] exprs;
+    return variables;
+}
+
+
+void Parsing() {
+    char symb = '1';
+    std::string expr;
+    std::string current;
+    auto* names = new std::string[1000];
+    int count_of_variables = 0;
+    while (symb != '\n') {
+        symb = getchar();
+        expr += symb;
+        if (symb == '\n' || symb == ' ' || symb == '\t' || symb == '(' || symb == ')' || symb == '*' || symb == '+' || symb == '-' ||
+        symb == '/' || symb == '^') {
+            if (!current.empty() && TypeOfExpression(current) == VARIABLE && !InVariables(names, current)) {
+                names[count_of_variables++] = current;
+            }
+            current = "";
+        }
+        else {
+            current += symb;
+        }
+    }
+    var* variables;
     if (count_of_variables != 0) {
-        ReadingVariables(variables, count_of_variables);
+        variables = ReadingVariables(names, count_of_variables);
     }
     std::cout << CountingExpression(expr, variables, count_of_variables);
+    delete[] names;
+    delete[] variables;
 }
 
 
