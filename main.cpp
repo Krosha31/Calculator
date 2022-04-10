@@ -332,7 +332,7 @@ void Parsing() {
             current += symb;
         }
     }
-    var* variables;
+    var* variables = nullptr;
     if (count_of_variables != 0) {
         variables = ReadingVariables(names, count_of_variables);
     }
