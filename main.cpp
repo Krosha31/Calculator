@@ -77,6 +77,7 @@ double VariableValue(var* variable, std::string name, int count) {
             return variable[i].value;
         }
     }
+    return 0;
 }
 
 
@@ -96,6 +97,7 @@ double Counting(double b, double a, char operation) {
     if (operation == '^') {
         return std::pow(a, b);
     }
+    return 0;
 }
 
 
