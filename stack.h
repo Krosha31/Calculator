@@ -2,17 +2,21 @@
 #ifndef CALCULATOR_STACK_H
 #define CALCULATOR_STACK_H
 
+#include <iostream>
+
+#include <complex>
+
  struct stack {
-    double* stack_array = nullptr;
+    std::complex <double>* stack_array = nullptr;
     int size = 0;
     int reserve = 0;
-    double head;
+    std::complex <double> head;
     bool is_empty = true;
 };
 
 stack* CreateStack();
-stack* AddToStack(stack* pstack, double value);
-double DeleteFromStack(stack* pstack);
+stack* AddToStack(stack* pstack, std::complex <double> value);
+std::complex <double> DeleteFromStack(stack* pstack);
 void PrintStack(stack* pstack);
 void PrintStackChar(stack* pstack);
 
